@@ -1,13 +1,11 @@
 from youtube_transcript_api import YouTubeTranscriptApi
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-
 import json
 import os
 
 # Get the directory where this script is located
 script_dir = os.path.dirname(os.path.abspath(__file__))
 data_file_path = os.path.join(script_dir, "data.json")
-
 # Load data from JSON file, or initialize with empty list if file doesn't exist or is empty
 try:
     with open(data_file_path, "r") as f:
@@ -44,8 +42,7 @@ def ApiCall(youtube_id):
     yt_api = YouTubeTranscriptApi()
     response = yt_api.fetch(youtube_id)
     filteredData = cleanData(response.snippets)
-    DATA.append({"videoId": youtube_id, "transcript": filteredData})
-    save_data()
+
     return filteredData
 
 
@@ -62,15 +59,17 @@ def main():
     print("hello! welcome to youtube transcript downloader")
     youtube_id = input("enter the youtube url")
     if "=" in youtube_id:
-        youtube_id = youtube_id.split("v=")
+        youtube_id = youtube_id.split("=")
         youtube_id = youtube_id[1]
+        if "&" in youtube_id:
+            youtube_id = youtube_id.split("&")[0]
     chunkCall = ApiCall(youtube_id)
     # chucking the transcript
     print(len(chunkCall))
     if chunkCall:
         chunks = splitText(chunkCall)
-        print(chunks[0])
-        print(chunks[1])
+        DATA.append({"videoId": youtube_id, "transcript": chunks})
+        save_data()
 
 
 main()
