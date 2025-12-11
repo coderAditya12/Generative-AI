@@ -1,5 +1,6 @@
 from youtube_transcript_api import YouTubeTranscriptApi
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_core.documents import Document
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_pinecone import PineconeVectorStore
 from pinecone import Pinecone
@@ -15,20 +16,37 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 data_file_path = os.path.join(script_dir, "data.json")
 pinecone_api_key = os.getenv("PINECONE_API_KEY")
 # Load data from JSON file, or initialize with empty list if file doesn't exist or is empty
+# embedding model
+embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
+
+pc = Pinecone(api_key=pinecone_api_key)
+index = pc.Index(
+    "chatbot",
+)
+
+vector_store = PineconeVectorStore(index=index, embedding=embeddings)
+DOCUMENT = []
 try:
     with open(data_file_path, "r") as f:
         data = json.load(f)
+
 except (FileNotFoundError, json.JSONDecodeError):
     data = []
 
 DATA = data
 
-# embedding model
-embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
 
-pc = Pinecone(api_key=pinecone_api_key)
-index = pc.Index("youtube-transcript")
+def upload_to_pinecone(chunks, youtube_id):
+    documents = []
+    for chunk in chunks:
+        documents.append(
+            Document(page_content=chunk, metadata={"source_video": youtube_id})
+        )
 
+    print(documents)
+    doc_ids = vector_store.add_documents(documents)
+    print(f"✓ Uploaded {len(doc_ids)} chunks to Pinecone")
+    return doc_ids
 
 
 def save_data():
@@ -67,6 +85,7 @@ def splitText(text):
         chunk_overlap=200,
     )
     chunks = text_splitter.split_text(text)
+
     return chunks
 
 
@@ -83,9 +102,9 @@ def main():
     print(len(chunkCall))
     if chunkCall:
         chunks = splitText(chunkCall)
-        print(chunks)
         DATA.append({"videoId": youtube_id, "transcript": chunks})
         save_data()
+        upload_to_pinecone(chunks, youtube_id)
 
 
 main()
