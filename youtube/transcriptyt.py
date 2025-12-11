@@ -1,11 +1,19 @@
 from youtube_transcript_api import YouTubeTranscriptApi
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_pinecone import PineconeVectorStore
+from pinecone import Pinecone
+from dotenv import load_dotenv
 import json
 import os
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Get the directory where this script is located
 script_dir = os.path.dirname(os.path.abspath(__file__))
 data_file_path = os.path.join(script_dir, "data.json")
+pinecone_api_key = os.getenv("PINECONE_API_KEY")
 # Load data from JSON file, or initialize with empty list if file doesn't exist or is empty
 try:
     with open(data_file_path, "r") as f:
@@ -14,6 +22,13 @@ except (FileNotFoundError, json.JSONDecodeError):
     data = []
 
 DATA = data
+
+# embedding model
+embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
+
+pc = Pinecone(api_key=pinecone_api_key)
+index = pc.Index("youtube-transcript")
+
 
 
 def save_data():
@@ -68,6 +83,7 @@ def main():
     print(len(chunkCall))
     if chunkCall:
         chunks = splitText(chunkCall)
+        print(chunks)
         DATA.append({"videoId": youtube_id, "transcript": chunks})
         save_data()
 
