@@ -1,7 +1,8 @@
 from youtube_transcript_api import YouTubeTranscriptApi
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+
+from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain_pinecone import PineconeVectorStore
 from pinecone import Pinecone
 from dotenv import load_dotenv
@@ -34,7 +35,7 @@ except (FileNotFoundError, json.JSONDecodeError):
     data = []
 
 DATA = data
-
+llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash")
 
 def upload_to_pinecone(chunks, youtube_id):
     documents = []
@@ -43,7 +44,7 @@ def upload_to_pinecone(chunks, youtube_id):
             Document(page_content=chunk, metadata={"source_video": youtube_id})
         )
 
-    print(documents)
+    # print(documents)
     doc_ids = vector_store.add_documents(documents)
     print(f"✓ Uploaded {len(doc_ids)} chunks to Pinecone")
     return doc_ids
@@ -89,6 +90,19 @@ def splitText(text):
     return chunks
 
 
+def llmCall(userQuery, results):
+    messages = [
+        (
+            "system",
+            "You are a helpful assistant that can answer questions about a given topic based on the provided context.",
+        ),
+        ("human", f"Context: {results}\n\nQuestion: {userQuery}"),
+    ]
+
+    response = llm.invoke(messages)
+    print(response.content)
+
+
 def main():
     print("hello! welcome to youtube transcript downloader")
     youtube_id = input("enter the youtube url")
@@ -104,7 +118,18 @@ def main():
         chunks = splitText(chunkCall)
         DATA.append({"videoId": youtube_id, "transcript": chunks})
         save_data()
-        upload_to_pinecone(chunks, youtube_id)
+        upload_chunks = upload_to_pinecone(chunks, youtube_id)
+
+        if upload_chunks:
+            userQuery = input("what you want to know")
+            
+            results = vector_store.similarity_search(
+                userQuery,
+                k=10,
+                filter={"source_video": youtube_id},
+            )
+            llmCall(userQuery, results)
+            print(results)
 
 
 main()
