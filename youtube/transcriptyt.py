@@ -124,6 +124,7 @@ def main():
             userQuery = input("what you want to know")
             
             results = vector_store.similarity_search(
+                
                 userQuery,
                 k=10,
                 filter={"source_video": youtube_id},
