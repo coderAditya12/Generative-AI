@@ -3,6 +3,9 @@ Main orchestrator for YouTube Transcript Downloader.
 Entry point for the application.
 """
 
+import streamlit as st
+
+
 from transcript import ApiCall
 from chunking import splitText
 from data_manager import load_data, save_data, add_transcript
@@ -81,6 +84,7 @@ def main():
             print(f"[Retrieved {len(results)} relevant chunks]")
     else:
         print("Failed to fetch transcript.")
+
 
 
 if __name__ == "__main__":
