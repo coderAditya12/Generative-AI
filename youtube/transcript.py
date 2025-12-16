@@ -23,12 +23,24 @@ def extract_video_id(url_or_id):
     return youtube_id
 
 
-def cleanData(snippets):
-    """Convert transcript snippets to plain text."""
-    transcript = ""
-    for snippet in snippets:
-        transcript += snippet.text
-    return transcript
+def cleanData(transcript_list):
+    """
+    Format: [00:12:30] The speaker said this text...
+    """
+    full_text = ""
+    for snippet in transcript_list:
+        # Convert seconds to HH:MM:SS format
+        start_seconds = int(snippet.start)
+        hours = start_seconds // 3600
+        minutes = (start_seconds % 3600) // 60
+        seconds = start_seconds % 60
+        timestamp = f"[{hours:02}:{minutes:02}:{seconds:02}]"
+
+        # Add timestamp to the text every few sentences
+        # (Doing it for every line is too messy, so we do it simply here)
+        full_text += f"{timestamp} {snippet.text} "
+
+    return full_text
 
 
 def check_url(youtube_id, data):
@@ -62,7 +74,7 @@ def ApiCall(youtube_id, data):
 
     # Fetch from YouTube API
     yt_api = YouTubeTranscriptApi()
-    response = yt_api.fetch(youtube_id,["en","hi"])
-    filteredData = cleanData(response.snippets)
+    response = yt_api.fetch(youtube_id, ["en", "hi"])
+    filteredData = cleanData(response)
 
     return filteredData
