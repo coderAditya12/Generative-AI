@@ -5,6 +5,24 @@ YouTube transcript fetching module.
 from youtube_transcript_api import YouTubeTranscriptApi
 
 
+def extract_video_id(url_or_id):
+    """
+    Extract video ID from YouTube URL or return as-is if already an ID.
+
+    Args:
+        url_or_id: YouTube URL or video ID
+
+    Returns:
+        YouTube video ID
+    """
+    youtube_id = url_or_id
+    if "=" in youtube_id:
+        youtube_id = youtube_id.split("=")[1]
+        if "&" in youtube_id:
+            youtube_id = youtube_id.split("&")[0]
+    return youtube_id
+
+
 def cleanData(snippets):
     """Convert transcript snippets to plain text."""
     transcript = ""
@@ -44,7 +62,7 @@ def ApiCall(youtube_id, data):
 
     # Fetch from YouTube API
     yt_api = YouTubeTranscriptApi()
-    response = yt_api.fetch(youtube_id)
+    response = yt_api.fetch(youtube_id,["en","hi"])
     filteredData = cleanData(response.snippets)
 
     return filteredData
